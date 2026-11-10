@@ -5,3 +5,5 @@
 *.suo
 .dotnet-cli/
 .nuget/
+entrega/
+__pycache__/
