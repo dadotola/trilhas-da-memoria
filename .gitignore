@@ -3,7 +3,7 @@
 .vs/
 *.user
 *.suo
+*.lnk
 .dotnet-cli/
 .nuget/
 entrega/
-__pycache__/

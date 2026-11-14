@@ -4,7 +4,6 @@ public partial class FormularioJogo : Form
 {
     private readonly Random sorteador = new Random();
     private readonly List<Fase> fases = CatalogoFases.Criar();
-    private readonly Dictionary<string, Bitmap> imagens = new Dictionary<string, Bitmap>();
     private readonly Font fonteEscondida = new Font("Segoe UI", 22, FontStyle.Bold);
     private readonly Font fonteRevelada = new Font("Segoe UI", 9, FontStyle.Bold);
     private Label? primeiraCarta;
@@ -15,6 +14,10 @@ public partial class FormularioJogo : Form
     public FormularioJogo()
     {
         InitializeComponent();
+    }
+
+    private void FormularioJogo_Load(object? sender, EventArgs e)
+    {
         CarregarFase();
     }
 
@@ -24,13 +27,12 @@ public partial class FormularioJogo : Form
         LimparSelecao();
         paresEncontrados = 0;
         Fase fase = fases[faseAtual];
-        tituloFase.Text = $"Fase {faseAtual + 1} de 3 — {fase.Tema}";
+        tituloFase.Text = $"Fase {faseAtual + 1} de {fases.Count} — {fase.Tema}";
         instrucao.Text = "Encontre as figuras que combinam!";
         AtualizarPlacar();
 
         tabuleiro.SuspendLayout();
-        while (tabuleiro.Controls.Count > 0)
-            tabuleiro.Controls[0].Dispose();
+        LimparTabuleiro();
 
         tabuleiro.ColumnStyles.Clear();
         tabuleiro.RowStyles.Clear();
@@ -53,6 +55,37 @@ public partial class FormularioJogo : Form
             cartas.RemoveAt(indice);
         }
         tabuleiro.ResumeLayout();
+        RedimensionarTabuleiro(this, EventArgs.Empty);
+    }
+
+    private void RedimensionarTabuleiro(object? sender, EventArgs e)
+    {
+        // Usa um quadrado centralizado para manter as linhas e colunas do mesmo tamanho.
+        int lado = Math.Min(areaTabuleiro.ClientSize.Width, areaTabuleiro.ClientSize.Height);
+        // Cada borda Inset ocupa dois pixels; o espaço restante é dividido entre as cartas.
+        int bordas = 2 * (tabuleiro.ColumnCount + 1);
+        int tamanhoCelula = (lado - bordas) / tabuleiro.ColumnCount;
+        if (tamanhoCelula <= 0)
+            return;
+        lado = tamanhoCelula * tabuleiro.ColumnCount + bordas;
+        int espacoHorizontal = areaTabuleiro.ClientSize.Width - lado;
+        int espacoVertical = areaTabuleiro.ClientSize.Height - lado;
+        // O Dock posiciona o tabuleiro depois da escala da tela, respeitando estas margens.
+        areaTabuleiro.Padding = new Padding(
+            espacoHorizontal / 2,
+            espacoVertical / 2,
+            espacoHorizontal - espacoHorizontal / 2,
+            espacoVertical - espacoVertical / 2);
+    }
+
+    private void LimparTabuleiro()
+    {
+        while (tabuleiro.Controls.Count > 0)
+        {
+            Label controle = (Label)tabuleiro.Controls[0];
+            controle.Image?.Dispose();
+            controle.Dispose();
+        }
     }
 
     private List<Carta> CriarCartas(Fase fase)
@@ -71,8 +104,9 @@ public partial class FormularioJogo : Form
         Label controle = new Label
         {
             Dock = DockStyle.Fill,
-            Margin = new Padding(3),
-            Padding = new Padding(2),
+            AutoSize = false,
+            Margin = new Padding(2),
+            Padding = new Padding(1),
             BackColor = Color.FromArgb(35, 108, 77),
             ForeColor = Color.White,
             Text = "?",
@@ -81,17 +115,10 @@ public partial class FormularioJogo : Form
             ImageAlign = ContentAlignment.TopCenter,
             Cursor = Cursors.Hand,
             AccessibleName = "Carta escondida",
-            Tag = carta
+            Tag = carta // Associa os dados da carta ao Label que recebe o clique.
         };
         controle.Click += Carta_Click;
         return controle;
-    }
-
-    private Bitmap ObterImagem(string nome)
-    {
-        if (!imagens.ContainsKey(nome))
-            imagens.Add(nome, RecursosImagens.Carregar(nome));
-        return imagens[nome];
     }
 
     private void RevelarCarta(Label controle)
@@ -103,7 +130,7 @@ public partial class FormularioJogo : Form
         controle.Font = fonteRevelada;
         controle.TextAlign = ContentAlignment.BottomCenter;
         controle.Text = carta.Descricao;
-        controle.Image = ObterImagem(carta.Imagem);
+        controle.Image = RecursosImagens.Carregar(carta.Imagem);
         controle.AccessibleName = carta.Descricao;
     }
 
@@ -111,6 +138,7 @@ public partial class FormularioJogo : Form
     {
         Carta carta = (Carta)controle.Tag!;
         carta.Revelada = false;
+        controle.Image?.Dispose();
         controle.Image = null;
         controle.Text = "?";
         controle.Font = fonteEscondida;
@@ -122,7 +150,8 @@ public partial class FormularioJogo : Form
 
     private void Carta_Click(object? sender, EventArgs e)
     {
-        if (temporizador.Enabled || sender is not Label controle)
+        Label? controle = sender as Label;
+        if (temporizador.Enabled || controle == null)
             return;
 
         Carta carta = (Carta)controle.Tag!;
@@ -138,6 +167,7 @@ public partial class FormularioJogo : Form
 
         segundaCarta = controle;
         Carta primeira = (Carta)primeiraCarta.Tag!;
+        // Compara o par, pois figuras diferentes podem combinar, como papel e lixeira azul.
         if (primeira.Par.Codigo == carta.Par.Codigo)
         {
             primeira.Encontrada = true;
@@ -149,6 +179,7 @@ public partial class FormularioJogo : Form
             LimparSelecao();
             MessageBox.Show(this, carta.Par.Mensagem, "Muito bem!",
                 MessageBoxButtons.OK, MessageBoxIcon.Information);
+            // Só verifica a conclusão depois de confirmar o acerto.
             VerificarVitoria();
             return;
         }

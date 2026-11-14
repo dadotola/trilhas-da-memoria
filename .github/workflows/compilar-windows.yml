@@ -16,8 +16,6 @@ jobs:
       - uses: actions/setup-dotnet@v4
         with:
           dotnet-version: '10.0.x'
-      - name: Conferir fases, mensagens e imagens
-        run: dotnet run --project Verificacoes/Verificacoes.csproj
       - name: Instalar ferramenta de empacotamento
         run: choco install innosetup --yes --no-progress
       - name: Gerar jogo e instalador

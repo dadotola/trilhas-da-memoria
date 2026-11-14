@@ -1,4 +1,8 @@
 ; Abra no Inno Setup após executar gerar-instalador.ps1 no Windows.
+#ifndef PastaJogo
+  #define PastaJogo "..\entrega\jogo"
+#endif
+
 [Setup]
 AppId={{CEFA7BBE-32E8-4DD8-93E1-DA86292B53D4}
 AppName=Trilhas da Memória
@@ -20,7 +24,7 @@ UninstallDisplayIcon={app}\JogoDaMemoria.exe
 Name: "portuguese"; MessagesFile: "compiler:Languages\BrazilianPortuguese.isl"
 
 [Files]
-Source: "..\entrega\jogo\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
+Source: "{#PastaJogo}\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
 
 [Icons]
 Name: "{autoprograms}\Trilhas da Memória"; Filename: "{app}\JogoDaMemoria.exe"
